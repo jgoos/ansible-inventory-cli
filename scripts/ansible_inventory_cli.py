@@ -16,13 +16,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from commands.base import BaseCommand
-from core import CSV_FILE, LOG_LEVEL, VERSION, get_logger, setup_logging
-
 # Add current directory to path for imports
 SCRIPT_DIR = Path(__file__).parent.absolute()
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+
+from commands.base import BaseCommand
+from core import CSV_FILE, LOG_LEVEL, VERSION, get_logger, setup_logging
 
 class CommandRegistry:
     """Registry for all available CLI commands."""

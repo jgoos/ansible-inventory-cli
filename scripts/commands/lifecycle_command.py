@@ -10,14 +10,14 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+SCRIPT_DIR = Path(__file__).parent.parent.absolute()
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from core import get_logger
 from managers.host_manager import HostManager
 
 from .base import BaseCommand, CommandResult
-
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
 
 
 class LifecycleCommand(BaseCommand):

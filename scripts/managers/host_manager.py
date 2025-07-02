@@ -14,6 +14,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+SCRIPT_DIR = Path(__file__).parent.parent.absolute()
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from core import CSV_FILE as DEFAULT_CSV_FILE
 from core import get_logger
 from core.config import PROJECT_ROOT

@@ -15,6 +15,10 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+SCRIPT_DIR = Path(__file__).parent.parent.absolute()
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from core import CSV_FILE as DEFAULT_CSV_FILE
 from core import (
     DEFAULT_SUPPORT_GROUP,
@@ -24,10 +28,6 @@ from core import (
     load_csv_data,
 )
 from core.models import Host, InventoryConfig, InventoryStats
-
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
 
 
 class InventoryManager:
