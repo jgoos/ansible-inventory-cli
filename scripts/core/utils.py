@@ -1036,10 +1036,11 @@ def get_secure_user_input(
         timer = threading.Timer(timeout, trigger_timeout)
         timer.start()
 
+        raw_input: Optional[str] = None
         user_input: Optional[str] = None
 
         try:
-            user_input = input(prompt).strip()
+            raw_input = input(prompt)
             cancel_event.set()
         except EOFError:
             cancel_event.set()
@@ -1048,15 +1049,21 @@ def get_secure_user_input(
         except KeyboardInterrupt:
             cancel_event.set()
             if timeout_event.is_set():
-                if user_input is not None:
+                if raw_input is not None:
                     logger.info("Input captured before interrupt")
-                    return user_input
-                raise TimeoutError("Input timeout")
-            logger.info("Input cancelled by user")
-            return None
+                    user_input = raw_input
+                else:
+                    raise TimeoutError("Input timeout")
+            else:
+                logger.info("Input cancelled by user")
+                return None
         finally:
             cancel_event.set()
             timer.cancel()
+            timer.join()
+
+        if user_input is None:
+            user_input = raw_input.strip()
 
         # Validate input length
         if len(user_input) > max_length:
