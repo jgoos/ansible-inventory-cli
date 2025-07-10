@@ -1019,27 +1019,33 @@ def get_secure_user_input(
         TimeoutError: If input times out
         ValueError: If input exceeds length limit
     """
-    import signal
-
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Input timeout")
+    import _thread
+    import threading
 
     logger = get_logger(__name__)
 
     try:
-        # Set timeout alarm
-        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)
+        timeout_flag = {"value": False}
+
+        def trigger_timeout():
+            timeout_flag["value"] = True
+            _thread.interrupt_main()
+
+        timer = threading.Timer(timeout, trigger_timeout)
+        timer.start()
 
         try:
             user_input = input(prompt).strip()
-        except (KeyboardInterrupt, EOFError):
+        except EOFError:
+            logger.info("Input cancelled by user")
+            return None
+        except KeyboardInterrupt:
+            if timeout_flag["value"]:
+                raise TimeoutError("Input timeout")
             logger.info("Input cancelled by user")
             return None
         finally:
-            # Restore original signal handler and cancel alarm
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            timer.cancel()
 
         # Validate input length
         if len(user_input) > max_length:
