@@ -44,6 +44,10 @@ def test_generate_inventory(tmp_path: Path):
     assert "web01" in data["env_production"]["hosts"]
     assert "db01" in data["env_production"]["hosts"]
 
+    # Check stats first
+    stats = inventory_result["stats"]
+    assert stats["total_hosts"] == 2
+
     # Test with ansible-inventory if available
     if shutil.which("ansible-inventory") is None:
         pytest.skip("ansible-inventory executable not found")
@@ -51,10 +55,6 @@ def test_generate_inventory(tmp_path: Path):
         ["ansible-inventory", "-i", str(inv_file), "--list"], capture_output=True
     )
     assert ansible_result.returncode == 0
-
-    # Check stats
-    stats = inventory_result["stats"]
-    assert stats["total_hosts"] == 2
 
 
 def test_validate_csv_duplicates(tmp_path: Path):
