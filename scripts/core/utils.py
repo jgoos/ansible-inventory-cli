@@ -7,12 +7,21 @@ management scripts to eliminate code duplication and ensure consistency.
 
 import contextlib
 import csv
-import fcntl
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows
+    fcntl = None  # type: ignore
+
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - POSIX
+    msvcrt = None  # type: ignore
+
 import logging
 import os
 import re
 import subprocess
-import sys
 import time
 from datetime import datetime
 from functools import wraps
@@ -1175,16 +1184,19 @@ def log_security_event(event_type: str, details: str, level: str = "INFO") -> No
 def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
     """Context manager for file locking to prevent concurrent access.
 
+    Uses :mod:`fcntl` on POSIX systems and :mod:`msvcrt` on Windows. If neither
+    module is available, locking is skipped with a warning.
+
     Args:
         file_path: Path to the file to lock
-        mode: File open mode (r, w, a, etc.)
-        timeout: Maximum time to wait for lock (seconds)
+        mode: File open mode (``r``, ``w``, ``a``)
+        timeout: Maximum time to wait for lock in seconds
 
     Yields:
-        Open file handle with exclusive lock
+        Open file handle with an exclusive lock when supported
 
     Raises:
-        TimeoutError: If lock cannot be acquired within timeout
+        TimeoutError: If lock cannot be acquired within ``timeout``
         OSError: If file operations fail
     """
     import time
@@ -1197,11 +1209,20 @@ def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
         # Open file
         file_handle = open(file_path, mode, encoding="utf-8")
 
+        if not (fcntl or msvcrt):
+            logger.warning(
+                "File locking not supported on this platform; continuing without lock"
+            )
+            yield file_handle
+            return
+
         # Try to acquire lock with timeout
         while True:
             try:
-                # Try to acquire exclusive lock (non-blocking)
-                fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if fcntl:
+                    fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                elif msvcrt:
+                    msvcrt.locking(file_handle.fileno(), msvcrt.LK_NBLCK, 1)
                 log_security_event("FILE_LOCK", f"Acquired lock on {file_path}")
                 break
             except OSError:
@@ -1218,8 +1239,12 @@ def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
         if file_handle:
             try:
                 # Release lock
-                fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
-                log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
+                if fcntl:
+                    fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+                    log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
+                elif msvcrt:
+                    msvcrt.locking(file_handle.fileno(), msvcrt.LK_UNLCK, 1)
+                    log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
             except OSError as e:
                 logger.warning(f"Failed to release file lock: {e}")
             finally:
