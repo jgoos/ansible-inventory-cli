@@ -1025,11 +1025,11 @@ def get_secure_user_input(
     logger = get_logger(__name__)
 
     try:
-        timeout_flag = {"value": False}
+        cancel_event = threading.Event()
 
         def trigger_timeout():
-            timeout_flag["value"] = True
-            _thread.interrupt_main()
+            if not cancel_event.is_set():
+                _thread.interrupt_main()
 
         timer = threading.Timer(timeout, trigger_timeout)
         timer.start()
@@ -1040,12 +1040,14 @@ def get_secure_user_input(
             logger.info("Input cancelled by user")
             return None
         except KeyboardInterrupt:
-            if timeout_flag["value"]:
-                raise TimeoutError("Input timeout")
-            logger.info("Input cancelled by user")
-            return None
+            if cancel_event.is_set() and not timer.is_alive():
+                logger.info("Input cancelled by user")
+                return None
+            raise TimeoutError("Input timeout")
         finally:
+            cancel_event.set()
             timer.cancel()
+            timer.join()
 
         # Validate input length
         if len(user_input) > max_length:
