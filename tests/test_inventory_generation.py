@@ -81,3 +81,17 @@ def test_load_csv_data_malformed(tmp_path: Path):
     data = load_csv_data(csv_file)
     assert len(data) == 1
     assert data[0]["hostname"] == "badrow"
+
+
+def test_load_hosts_with_env_code(tmp_path: Path):
+    """Hosts should load correctly when filtering by environment code."""
+    rows = [
+        "hostname,environment,status,cname",
+        "web01,PRD,active,",
+        "db01,PRD,active,",
+    ]
+    csv_file = create_csv(tmp_path, rows)
+    manager = InventoryManager(csv_file=csv_file)
+    hosts = manager.load_hosts(environment="prd")
+    assert len(hosts) == 2
+    assert all(h.environment == "production" for h in hosts)
