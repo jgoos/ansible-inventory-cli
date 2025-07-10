@@ -625,7 +625,7 @@ def save_yaml_file(
         logger.debug(f"Ensuring directory exists: {path_obj.parent}")
 
         # Write YAML file
-        with open(path_obj, "w") as f:
+        with open(path_obj, "w", encoding="utf-8") as f:
             f.write("---\n")
             if header_comment:
                 f.write(f"# {header_comment}\n")
