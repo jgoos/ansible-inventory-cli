@@ -44,14 +44,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Ensure sibling modules are importable when this file is imported outside of
-# the `scripts` directory
-SCRIPT_DIR = Path(__file__).parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-from commands.base import BaseCommand  # noqa: E402
-from core import (  # noqa: E402
+from .commands.base import BaseCommand  # noqa: E402
+from .core import (  # noqa: E402
     CSV_FILE,
     LOG_LEVEL,
     PROJECT_ROOT,

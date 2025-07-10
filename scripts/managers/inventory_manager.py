@@ -15,22 +15,16 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from core import CSV_FILE as DEFAULT_CSV_FILE
-from core import (
+from ..core import CSV_FILE as DEFAULT_CSV_FILE
+from ..core import (
     HOST_VARS_HEADER,
     ensure_directory_exists,
     get_logger,
     load_csv_data,
 )
-from core.config import get_environment_info_from_code, load_config
-from core.models import Host, InventoryConfig, InventoryStats
-from managers.group_vars_manager import GroupVarsManager
-
-# Ensure sibling modules are importable when imported outside of the `scripts`
-# directory
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+from ..core.config import get_environment_info_from_code, load_config
+from ..core.models import Host, InventoryConfig, InventoryStats
+from .group_vars_manager import GroupVarsManager
 
 
 class InventoryManager:

@@ -13,11 +13,11 @@ import sys
 import os
 
 # Add scripts directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from core.models import Host
-from core.utils import load_csv_data, validate_hostname, validate_date_format
-from managers.inventory_manager import InventoryManager
+from scripts.core.models import Host
+from scripts.core.utils import load_csv_data, validate_hostname, validate_date_format
+from scripts.managers.inventory_manager import InventoryManager
 
 
 class TestHostModelEdgeCases:

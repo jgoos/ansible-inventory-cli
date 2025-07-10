@@ -23,11 +23,6 @@ import yaml
 
 from .models import ValidationResult
 
-# Add scripts directory to path for imports
-SCRIPT_DIR = Path(__file__).parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
 try:
     from .config import (
         CSV_FILE,
