@@ -73,6 +73,15 @@ class InventoryManager:
         )
         hosts: List[Host] = []
 
+        normalized_env = None
+        if environment:
+            env_filter = environment.strip()
+            env_info = get_environment_info_from_code(env_filter)
+            normalized_env = env_info["name"] if env_info else env_filter
+            self.logger.debug(
+                f"Normalized environment filter '{environment}' to '{normalized_env}'"
+            )
+
         for row_data in csv_data:
             try:
                 # Map environment code to full name if needed
@@ -87,7 +96,7 @@ class InventoryManager:
                         )
 
                 host = Host.from_csv_row(row_data)
-                if environment and host.environment != environment:
+                if normalized_env and host.environment != normalized_env:
                     continue
                 hosts.append(host)
                 self.stats.add_host(host)
@@ -185,7 +194,9 @@ class InventoryManager:
             orphaned_count = self.cleanup_orphaned_host_vars(hosts, dry_run)
 
             # Clean up orphaned group_vars files
-            group_orphaned_removed = group_vars_manager.cleanup_orphaned_group_vars(hosts, dry_run)
+            group_orphaned_removed = group_vars_manager.cleanup_orphaned_group_vars(
+                hosts, dry_run
+            )
 
             # Filter environments if specified
             target_environments = environments or self.config.environments
