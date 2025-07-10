@@ -44,14 +44,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Ensure sibling modules are importable when this file is imported outside of
-# the `scripts` directory
-SCRIPT_DIR = Path(__file__).parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+if __name__ == "__main__" and __package__ is None:
+    # Add the parent directory to sys.path so "scripts" is treated as a package
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    __package__ = "scripts"
 
-from commands.base import BaseCommand  # noqa: E402
-from core import (  # noqa: E402
+from .commands.base import BaseCommand  # noqa: E402
+from .core import (  # noqa: E402
     CSV_FILE,
     LOG_LEVEL,
     PROJECT_ROOT,
@@ -80,10 +79,10 @@ class CommandRegistry:
         Commands should follow the naming convention: {name}Command
         """
         try:
-            from commands.generate_command import GenerateCommand
-            from commands.health_command import HealthCommand
-            from commands.lifecycle_command import LifecycleCommand
-            from commands.validate_command import ValidateCommand
+            from .commands.generate_command import GenerateCommand
+            from .commands.health_command import HealthCommand
+            from .commands.lifecycle_command import LifecycleCommand
+            from .commands.validate_command import ValidateCommand
 
             self.register("generate", GenerateCommand)
             self.register("health", HealthCommand)

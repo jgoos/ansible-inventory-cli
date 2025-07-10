@@ -14,17 +14,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-# Ensure sibling modules are importable when this file is imported outside of
-# the `scripts` directory
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-from core import CSV_FILE as DEFAULT_CSV_FILE  # noqa: E402
-from core import get_logger  # noqa: E402
-from core.config import PROJECT_ROOT  # noqa: E402
-from core.models import InventoryConfig  # noqa: E402
-from core.utils import (  # noqa: E402
+from ..core import CSV_FILE as DEFAULT_CSV_FILE  # noqa: E402
+from ..core import get_logger  # noqa: E402
+from ..core.config import PROJECT_ROOT  # noqa: E402
+from ..core.models import InventoryConfig  # noqa: E402
+from ..core.utils import (  # noqa: E402
     log_data_modification,
     log_file_access,
     security_audit_log,
@@ -290,7 +284,7 @@ class HostManager:
         # Confirm cleanup unless auto-confirm
         if not auto_confirm:
             try:
-                from core.utils import get_secure_user_input
+                from ..core.utils import get_secure_user_input
 
                 response = get_secure_user_input(
                     f"Clean up {len(expired_hosts)} expired hosts? [y/N]: ",

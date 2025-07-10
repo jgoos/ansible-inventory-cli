@@ -14,16 +14,10 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-# Ensure sibling modules are importable when imported outside of the `scripts`
-# directory
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-from core import get_logger  # noqa: E402
-from core.config import CSV_FILE  # noqa: E402
-from core.models import InventoryConfig, ValidationResult  # noqa: E402
-from managers.inventory_manager import InventoryManager  # noqa: E402
+from ..core import get_logger  # noqa: E402
+from ..core.config import CSV_FILE  # noqa: E402
+from ..core.models import InventoryConfig, ValidationResult  # noqa: E402
+from .inventory_manager import InventoryManager  # noqa: E402
 
 
 class ValidationManager:

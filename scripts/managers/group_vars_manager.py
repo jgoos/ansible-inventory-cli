@@ -3,14 +3,9 @@ import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
-from core import get_logger
-from core.config import load_config
-from core.models import Host
-
-# Ensure sibling modules are importable
-SCRIPT_DIR = Path(__file__).parent.parent.absolute()
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+from ..core import get_logger
+from ..core.config import load_config
+from ..core.models import Host
 
 
 class GroupVarsManager:
