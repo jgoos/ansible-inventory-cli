@@ -45,6 +45,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 if __name__ == "__main__" and __package__ is None:
+    # Add the parent directory to sys.path so "scripts" is treated as a package
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     __package__ = "scripts"
 
 from .commands.base import BaseCommand  # noqa: E402
