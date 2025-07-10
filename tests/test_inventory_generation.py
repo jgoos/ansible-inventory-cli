@@ -1,7 +1,9 @@
+import shutil
 import subprocess
 from pathlib import Path
 from typing import List
 
+import pytest
 import yaml
 
 from scripts.core.utils import load_csv_data
@@ -42,15 +44,17 @@ def test_generate_inventory(tmp_path: Path):
     assert "web01" in data["env_production"]["hosts"]
     assert "db01" in data["env_production"]["hosts"]
 
-    # Test with ansible-inventory
+    # Check stats first
+    stats = inventory_result["stats"]
+    assert stats["total_hosts"] == 2
+
+    # Test with ansible-inventory if available
+    if shutil.which("ansible-inventory") is None:
+        pytest.skip("ansible-inventory executable not found")
     ansible_result = subprocess.run(
         ["ansible-inventory", "-i", str(inv_file), "--list"], capture_output=True
     )
     assert ansible_result.returncode == 0
-
-    # Check stats
-    stats = inventory_result["stats"]
-    assert stats["total_hosts"] == 2
 
 
 def test_validate_csv_duplicates(tmp_path: Path):
