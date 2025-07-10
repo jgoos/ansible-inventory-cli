@@ -1241,9 +1241,10 @@ def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
                 # Release lock
                 if fcntl:
                     fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+                    log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
                 elif msvcrt:
                     msvcrt.locking(file_handle.fileno(), msvcrt.LK_UNLCK, 1)
-                log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
+                    log_security_event("FILE_UNLOCK", f"Released lock on {file_path}")
             except OSError as e:
                 logger.warning(f"Failed to release file lock: {e}")
             finally:
