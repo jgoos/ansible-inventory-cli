@@ -1019,27 +1019,51 @@ def get_secure_user_input(
         TimeoutError: If input times out
         ValueError: If input exceeds length limit
     """
-    import signal
-
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Input timeout")
+    import _thread
+    import threading
 
     logger = get_logger(__name__)
 
     try:
-        # Set timeout alarm
-        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)
+        cancel_event = threading.Event()
+        timeout_event = threading.Event()
+
+        def trigger_timeout() -> None:
+            if not cancel_event.is_set():
+                timeout_event.set()
+                _thread.interrupt_main()
+
+        timer = threading.Timer(timeout, trigger_timeout)
+        timer.start()
+
+        raw_input: Optional[str] = None
+        user_input: Optional[str] = None
 
         try:
-            user_input = input(prompt).strip()
-        except (KeyboardInterrupt, EOFError):
+            raw_input = input(prompt)
+            cancel_event.set()
+        except EOFError:
+            cancel_event.set()
             logger.info("Input cancelled by user")
             return None
+        except KeyboardInterrupt:
+            cancel_event.set()
+            if timeout_event.is_set():
+                if raw_input is not None:
+                    logger.info("Input captured before interrupt")
+                    user_input = raw_input
+                else:
+                    raise TimeoutError("Input timeout")
+            else:
+                logger.info("Input cancelled by user")
+                return None
         finally:
-            # Restore original signal handler and cancel alarm
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            cancel_event.set()
+            timer.cancel()
+            timer.join()
+
+        if user_input is None:
+            user_input = raw_input.strip()
 
         # Validate input length
         if len(user_input) > max_length:
