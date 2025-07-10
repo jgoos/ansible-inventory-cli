@@ -44,6 +44,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "scripts"
+
 from .commands.base import BaseCommand  # noqa: E402
 from .core import (  # noqa: E402
     CSV_FILE,
@@ -74,10 +77,10 @@ class CommandRegistry:
         Commands should follow the naming convention: {name}Command
         """
         try:
-            from commands.generate_command import GenerateCommand
-            from commands.health_command import HealthCommand
-            from commands.lifecycle_command import LifecycleCommand
-            from commands.validate_command import ValidateCommand
+            from .commands.generate_command import GenerateCommand
+            from .commands.health_command import HealthCommand
+            from .commands.lifecycle_command import LifecycleCommand
+            from .commands.validate_command import ValidateCommand
 
             self.register("generate", GenerateCommand)
             self.register("health", HealthCommand)
