@@ -54,42 +54,42 @@ help:
 
 # Installation (using pyproject.toml as single source of truth)
 install: ## Install the package
-	python3 -m pip install -e .
+	.venv/bin/python3 -m pip install -e .
 
 install-dev: ## Install development dependencies
-	python3 -m pip install -e ".[dev,test,docs]"
-	pre-commit install
+	.venv/bin/python3 -m pip install -e ".[dev,test,docs]"
+	.venv/bin/pre-commit install
 
 # Testing
 test: ## Run tests
-	pytest -v
+	.venv/bin/pytest -v
 
 test-cov: ## Run tests with coverage
-	pytest --cov=scripts --cov-report=html --cov-report=term-missing --cov-report=xml -v
+	.venv/bin/pytest --cov=scripts --cov-report=html --cov-report=term-missing --cov-report=xml -v
 
 test-unit: ## Run unit tests only
-	pytest tests/ -m "unit" -v
+	.venv/bin/pytest tests/ -m "unit" -v
 
 test-integration: ## Run integration tests only
-	pytest tests/ -m "integration" -v
+	.venv/bin/pytest tests/ -m "integration" -v
 
 test-e2e: ## Run end-to-end tests only
-	pytest tests/ -m "e2e" -v
+	.venv/bin/pytest tests/ -m "e2e" -v
 
 test-performance: ## Run performance tests only
-	pytest tests/test_performance.py -v
+	.venv/bin/pytest tests/test_performance.py -v
 
 test-security: ## Run security tests only
-	pytest tests/test_security.py -v
+	.venv/bin/pytest tests/test_security.py -v
 
 test-existing: ## Run existing tests only
-	pytest tests/test_edge_cases.py tests/test_host_manager.py tests/test_instance_validation.py tests/test_inventory_generation.py -v
+	.venv/bin/pytest tests/test_edge_cases.py tests/test_host_manager.py tests/test_instance_validation.py tests/test_inventory_generation.py -v
 
 test-all: ## Run all tests with coverage and fail if below threshold
-	pytest tests/ --cov=scripts --cov-report=html --cov-report=xml --cov-report=term-missing --cov-fail-under=80 -v
+	.venv/bin/pytest tests/ --cov=scripts --cov-report=html --cov-report=xml --cov-report=term-missing --cov-fail-under=80 -v
 
 test-parallel: ## Run tests in parallel
-	pytest tests/ -n auto -v
+	.venv/bin/pytest tests/ -n auto -v
 
 test-markers: ## Show available test markers
 	@echo "Available test markers:"
@@ -112,31 +112,31 @@ test-clean: ## Clean test artifacts
 # Code Quality
 lint: ## Run all linting tools
 	@echo "Running flake8..."
-	flake8 scripts/
+	.venv/bin/flake8 scripts/
 	@echo "Running mypy..."
-	mypy scripts/
+	.venv/bin/mypy scripts/
 	@echo "Running bandit..."
-	bandit -r scripts/
+	.venv/bin/bandit -r scripts/
 	@echo "Running yamllint..."
-	yamllint inventory/ ansible.cfg
+	.venv/bin/yamllint inventory/ ansible.cfg
 
 format: ## Format code with black and isort
 	@echo "Running black..."
-	black scripts/
+	.venv/bin/black scripts/
 	@echo "Running isort..."
-	isort scripts/
+	.venv/bin/isort scripts/
 
 format-check: ## Check if code is properly formatted
 	@echo "Checking black formatting..."
-	black --check scripts/
+	.venv/bin/black --check scripts/
 	@echo "Checking isort formatting..."
-	isort --check-only scripts/
+	.venv/bin/isort --check-only scripts/
 
 security: ## Run security checks
 	@echo "Running bandit security scan..."
-	bandit -r scripts/ -f json -o security-report.json || true
+	.venv/bin/bandit -r scripts/ -f json -o security-report.json || true
 	@echo "Running safety check..."
-	safety check --json --output safety-report.json || true
+	.venv/bin/safety check --json --output safety-report.json || true
 	@echo "Security scan complete!"
 	@echo "📊 Security Summary:"
 	@if [ -f security-report.json ]; then \
@@ -154,10 +154,10 @@ security: ## Run security checks
 
 # Pre-commit
 pre-commit: ## Run pre-commit hooks
-	pre-commit run --all-files
+	.venv/bin/pre-commit run --all-files
 
 pre-commit-update: ## Update pre-commit hooks
-	pre-commit autoupdate
+	.venv/bin/pre-commit autoupdate
 
 # Project Health
 check: format-check lint test ## Run all quality checks
@@ -167,11 +167,11 @@ quality-check: format-check lint test-cov security ## Run comprehensive quality 
 	@echo "Comprehensive quality checks passed! ✅"
 
 performance-test: ## Run performance benchmarks
-	pytest tests/test_performance.py --benchmark-only --benchmark-json=benchmark-results.json || true
+	.venv/bin/pytest tests/test_performance.py --benchmark-only --benchmark-json=benchmark-results.json || true
 
 health-check: ## Run inventory health check
 	@echo "Running inventory health check..."
-	python3 scripts/ansible_inventory_cli.py health
+	.venv/bin/python3 scripts/ansible_inventory_cli.py health
 
 validate: ## Validate inventory structure
 	@echo "Validating inventory structure..."
@@ -196,29 +196,34 @@ clean: ## Clean build artifacts
 	find . -type f -name "*.pyo" -delete
 
 build: clean ## Build distribution packages
-	python3 -m build
+	.venv/bin/python3 -m build
 
 build-wheel: clean ## Build wheel package only
-	python3 -m build --wheel
+	.venv/bin/python3 -m build --wheel
 
 # Development Environment
 setup-dev: ## Set up development environment
 	@echo "Setting up development environment..."
-	python3 -m venv venv
-	@echo "Virtual environment created. Activate with: source venv/bin/activate"
-	@echo "Then run: make install-dev"
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python3 -m venv .venv; \
+		echo "Virtual environment created at .venv/"; \
+	else \
+		echo "Virtual environment already exists at .venv/"; \
+	fi
+	@echo "Run: make install-dev"
 
 check-dependencies: ## Check if all required dependencies are installed
 	@echo "🔍 Checking dependencies..."
-	@python3 -c "import sys; print(f'Python version: {sys.version}')"
-	@python3 -c "import pytest; print('✅ pytest installed')" || echo "❌ pytest missing - run 'make install-dev'"
-	@python3 -c "import black; print('✅ black installed')" || echo "❌ black missing - run 'make install-dev'"
-	@python3 -c "import flake8; print('✅ flake8 installed')" || echo "❌ flake8 missing - run 'make install-dev'"
-	@python3 -c "import yaml; print('✅ PyYAML installed')" || echo "❌ PyYAML missing - run 'make install-dev'"
-	@python3 -c "import memory_profiler; print('✅ memory_profiler installed')" || echo "❌ memory_profiler missing - run 'make install-dev'"
-	@python3 -c "import xdist; print('✅ pytest-xdist installed')" || echo "❌ pytest-xdist missing - run 'make install-dev'"
-	@python3 -c "import pytest_benchmark; print('✅ pytest-benchmark installed')" || echo "❌ pytest-benchmark missing - run 'make install-dev'"
-	@which yamllint > /dev/null && echo "✅ yamllint installed" || echo "❌ yamllint missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import sys; print(f'Python version: {sys.version}')"
+	@.venv/bin/python3 -c "import pytest; print('✅ pytest installed')" || echo "❌ pytest missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import black; print('✅ black installed')" || echo "❌ black missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import flake8; print('✅ flake8 installed')" || echo "❌ flake8 missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import yaml; print('✅ PyYAML installed')" || echo "❌ PyYAML missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import memory_profiler; print('✅ memory_profiler installed')" || echo "❌ memory_profiler missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import xdist; print('✅ pytest-xdist installed')" || echo "❌ pytest-xdist missing - run 'make install-dev'"
+	@.venv/bin/python3 -c "import pytest_benchmark; print('✅ pytest-benchmark installed')" || echo "❌ pytest-benchmark missing - run 'make install-dev'"
+	@.venv/bin/yamllint --version > /dev/null && echo "✅ yamllint installed" || echo "❌ yamllint missing - run 'make install-dev'"
 	@which ansible > /dev/null && echo "✅ ansible installed" || echo "❌ ansible missing - install with 'pip install ansible'"
 	@echo "✅ Dependency check complete!"
 
@@ -266,7 +271,7 @@ ansible-check: ## Check Ansible playbook syntax
 generate: ## Generate inventory from CSV (auto-cleans orphaned files)
 	@echo "Generating inventory from CSV..."
 	@echo "Note: Orphaned host_vars files will be automatically cleaned up"
-	python3 scripts/ansible_inventory_cli.py generate
+	.venv/bin/python3 scripts/ansible_inventory_cli.py generate
 	@echo "Inventory generation complete! ✅"
 
 generate-fresh: ## Remove ALL host_vars and regenerate from CSV (DESTRUCTIVE)
@@ -275,18 +280,18 @@ generate-fresh: ## Remove ALL host_vars and regenerate from CSV (DESTRUCTIVE)
 	@echo "Removing all host_vars files..."
 	rm -rf inventory/host_vars/*
 	@echo "Generating fresh inventory from CSV..."
-	python3 scripts/ansible_inventory_cli.py generate
+	.venv/bin/python3 scripts/ansible_inventory_cli.py generate
 	@echo "Fresh inventory generation complete! ✅"
 
 generate-dry-run: ## Generate inventory from CSV (dry run)
 	@echo "Generating inventory from CSV (dry run)..."
-	python3 scripts/ansible_inventory_cli.py generate --dry-run
+	.venv/bin/python3 scripts/ansible_inventory_cli.py generate --dry-run
 	@echo "Dry run complete! ✅"
 
 inventory-stats: ## Show inventory statistics
 	@echo "Inventory Statistics:"
 	@echo "===================="
-	python3 scripts/ansible_inventory_cli.py health
+	.venv/bin/python3 scripts/ansible_inventory_cli.py health
 
 csv-backup: ## Create CSV backup
 	@echo "Creating CSV backup..."
@@ -299,7 +304,7 @@ import-dry-run: ## Test import of external inventory (requires INVENTORY_FILE)
 		echo "Usage: make import-dry-run INVENTORY_FILE=/path/to/inventory.yml"; \
 		exit 1; \
 	fi
-	python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" --dry-run
+	.venv/bin/python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" --dry-run
 
 import-inventory: ## Import external inventory (requires INVENTORY_FILE)
 	@if [ -z "$(INVENTORY_FILE)" ]; then \
@@ -310,7 +315,7 @@ import-inventory: ## Import external inventory (requires INVENTORY_FILE)
 	@echo "⚠️  WARNING: This will create a new CSV file with imported inventory data"
 	@echo "Make sure to backup your existing CSV first!"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ] || exit 1
-	python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" $(if $(HOST_VARS_DIR),--host-vars-dir "$(HOST_VARS_DIR)")
+	.venv/bin/python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" $(if $(HOST_VARS_DIR),--host-vars-dir "$(HOST_VARS_DIR)")
 
 import-help: ## Show import usage examples
 	@echo "🔄 INVENTORY IMPORT COMMANDS"
@@ -323,24 +328,24 @@ import-help: ## Show import usage examples
 	@echo "  make import-inventory INVENTORY_FILE=/path/to/inventory.yml HOST_VARS_DIR=/path/to/host_vars/"
 	@echo ""
 	@echo "Direct command usage:"
-	@echo "  python3 scripts/ansible_inventory_cli.py import --help"
-	@echo "  python3 scripts/inventory_import.py --help"
+	@echo "  .venv/bin/python3 scripts/ansible_inventory_cli.py import --help"
+	@echo "  .venv/bin/python3 scripts/inventory_import.py --help"
 
 # CI/CD helpers
 ci-install: ## Install for CI environment
-	python3 -m pip install -e ".[dev,test]"
+	.venv/bin/python3 -m pip install -e ".[dev,test]"
 
 ci-test: ## Run tests in CI environment
-	pytest --cov=scripts --cov-report=xml --cov-report=term-missing -v
+	.venv/bin/pytest --cov=scripts --cov-report=xml --cov-report=term-missing -v
 
 ci-lint: ## Run linting in CI environment
-	flake8 scripts/ --output-file=flake8-report.txt
-	mypy scripts/ --xml-report=mypy-report
-	bandit -r scripts/ -f json -o bandit-report.json
+	.venv/bin/flake8 scripts/ --output-file=flake8-report.txt
+	.venv/bin/mypy scripts/ --xml-report=mypy-report
+	.venv/bin/bandit -r scripts/ -f json -o bandit-report.json
 
 # Version management
 version: ## Show current version
-	@python3 -c "import scripts.core.config as config; print(f'Version: {getattr(config, \"VERSION\", \"unknown\")}')"
+	@.venv/bin/python3 -c "import scripts.core.config as config; print(f'Version: {getattr(config, \"VERSION\", \"unknown\")}')"
 
 # Database/CSV operations
 backup-all: ## Backup all important files
@@ -351,5 +356,5 @@ backup-all: ## Backup all important files
 # Performance testing
 perf-test: ## Run performance tests
 	@echo "Running performance tests..."
-	time python3 scripts/ansible_inventory_cli.py health
+	time .venv/bin/python3 scripts/ansible_inventory_cli.py health
 	@echo "Performance test complete! ⚡"
