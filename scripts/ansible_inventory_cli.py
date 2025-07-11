@@ -6,7 +6,7 @@ A comprehensive command-line interface for managing Ansible inventory files
 with support for multiple data sources and dynamic inventory generation.
 
 Author: J Goossens <jgoos@users.noreply.github.com>
-Version: 2.0.0
+Version: Dynamic (from pyproject.toml)
 
 CSV Product Columns (Dynamic System):
 -------------------------------------

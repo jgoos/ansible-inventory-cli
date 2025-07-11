@@ -7,14 +7,51 @@ variables can override YAML settings.
 """
 
 import os
+import re
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-# Version information (fallback if not in YAML)
-VERSION: str = "2.0.0"
+
+def _get_version_from_pyproject() -> str:
+    """Get version from pyproject.toml file.
+    
+    Returns:
+        Version string from pyproject.toml, or fallback version if not found.
+    """
+    try:
+        # Try to use importlib.metadata first (Python 3.8+)
+        try:
+            from importlib.metadata import version
+            return version("ansible-inventory-cli")
+        except ImportError:
+            try:
+                from importlib_metadata import version
+                return version("ansible-inventory-cli")
+            except ImportError:
+                pass
+        
+        # Fallback: parse pyproject.toml directly
+        project_root = Path(__file__).parent.parent.parent
+        pyproject_path = project_root / "pyproject.toml"
+        
+        if pyproject_path.exists():
+            with open(pyproject_path, "r") as f:
+                content = f.read()
+                match = re.search(r'version\s*=\s*"([^"]+)"', content)
+                if match:
+                    return match.group(1)
+    except Exception:
+        pass
+    
+    # Final fallback
+    return "2.0.0"
+
+
+# Version information (dynamically read from pyproject.toml)
+VERSION: str = _get_version_from_pyproject()
 
 # Project structure - find project root
 PROJECT_ROOT: Path = Path(__file__).parent.parent.parent
@@ -39,7 +76,7 @@ def load_config() -> Dict[str, Any]:
         # Minimal essential defaults (only for critical functionality)
         # Most configuration should be in inventory-config.yml
         minimal_defaults = {
-            "version": "2.0.0",
+            "version": VERSION,
             "paths": {
                 "project_root": ".",
                 "inventory_source": "inventory_source",
@@ -166,8 +203,8 @@ _config = load_config()
 # These maintain the exact same interface as before
 # Values come from YAML file with minimal fallbacks
 
-# Version information
-VERSION = _config.get("version", "2.0.0")
+# Version information (always use dynamic version, not from config)
+# VERSION = _config.get("version", VERSION)  # Don't override with config file version
 
 # Logging configuration
 LOG_LEVEL = _config.get("logging", {}).get("level", "INFO")
