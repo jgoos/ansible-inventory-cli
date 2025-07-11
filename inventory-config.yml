@@ -3,7 +3,7 @@
 # Edit this file to customize the system behavior
 
 # Version and metadata
-version: "2.0.0"
+# version: dynamically determined from pyproject.toml
 description: "Ansible Inventory Management System Configuration"
 
 # Project structure - all paths relative to project root

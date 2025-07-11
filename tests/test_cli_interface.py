@@ -13,6 +13,25 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# For version detection (Python 3.8+ and fallback for older versions)
+try:
+    from importlib.metadata import version
+except ImportError:
+    try:
+        from importlib_metadata import version
+    except ImportError:
+        # Fallback: parse pyproject.toml directly using regex
+        import re
+        
+        def version(package_name):
+            try:
+                with open("pyproject.toml", "r") as f:
+                    content = f.read()
+                    match = re.search(r'version\s*=\s*"([^"]+)"', content)
+                    return match.group(1) if match else "unknown"
+            except Exception:
+                return "unknown"
+
 from scripts.ansible_inventory_cli import (
     CommandRegistry,
     ModularInventoryCLI,
@@ -255,7 +274,9 @@ class TestModularInventoryCLI:
             cli.run()
         
         captured = capsys.readouterr()
-        assert "2.0.0" in captured.out
+        # Get the expected version dynamically from project configuration
+        expected_version = version("ansible-inventory-cli")
+        assert expected_version in captured.out
 
 
 class TestMainFunction:

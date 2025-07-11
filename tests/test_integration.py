@@ -261,7 +261,7 @@ class TestConfigurationIntegration:
         # Create custom configuration
         config_file = tmp_path / "custom-config.yml"
         config_content = """
-version: "2.0.0"
+version: "4.0.0"
 environments:
   supported: ["production", "staging"]
   codes:
