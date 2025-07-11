@@ -13,11 +13,17 @@ PYTHON_VERSION_CHECK := $(shell $(PYTHON3) --version 2>/dev/null | grep -q "Pyth
 
 .PHONY: help install install-dev test test-cov lint format security clean build pre-commit check health-check python-check
 
-# Default target
+# ================================================
+# DEFAULT TARGET
+# ================================================
+
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-# Python3 verification for RHEL9
+# ================================================
+# PYTHON3 VERIFICATION
+# ================================================
+
 python-check: ## Verify Python3 is available (RHEL9 default)
 	@echo "🐍 Checking Python3 availability..."
 	@if [ "$(PYTHON_VERSION_CHECK)" = "OK" ]; then \
@@ -28,8 +34,10 @@ python-check: ## Verify Python3 is available (RHEL9 default)
 		exit 1; \
 	fi
 
-## Installation Targets
-# Installation (using pyproject.toml as single source of truth)
+# ================================================
+# INSTALLATION TARGETS
+# ================================================
+
 install: ## Install the package
 	$(VENV_PIP) install -e .
 
@@ -37,8 +45,10 @@ install-dev: install ## Install development dependencies
 	$(VENV_PIP) install -e ".[dev,test,docs]"
 	$(VENV_DIR)/bin/pre-commit install
 
-## Testing Targets
-# Testing
+# ================================================
+# TESTING TARGETS
+# ================================================
+
 test: install-dev ## Run tests
 	$(VENV_DIR)/bin/pytest -v
 
@@ -88,8 +98,10 @@ test-clean: ## Clean test artifacts
 	rm -rf benchmark-results.json
 	@echo "Test artifacts cleaned! ✅"
 
-## Code Quality Targets
-# Code Quality
+# ================================================
+# CODE QUALITY TARGETS
+# ================================================
+
 lint: install-dev ## Run all linting tools
 	@echo "Running flake8..."
 	$(VENV_DIR)/bin/flake8 scripts/
@@ -132,8 +144,10 @@ security: install-dev ## Run security checks
 		echo "  - No safety report generated"; \
 	fi
 
-## Pre-commit Targets
-# Pre-commit
+# ================================================
+# PRE-COMMIT TARGETS
+# ================================================
+
 pre-commit: install-dev ## Run pre-commit hooks
 	$(VENV_DIR)/bin/pre-commit run --all-files
 	@echo "Pre-commit hooks complete! ✅"
@@ -142,8 +156,10 @@ pre-commit-update: install-dev ## Update pre-commit hooks
 	$(VENV_DIR)/bin/pre-commit autoupdate
 	@echo "Pre-commit hooks updated! ✅"
 
-## Project Health Targets
-# Project Health
+# ================================================
+# PROJECT HEALTH TARGETS
+# ================================================
+
 check: install-dev format-check lint test ## Run all quality checks
 	@echo "All checks passed! ✅"
 
@@ -166,8 +182,10 @@ validate: ## Validate inventory structure
 	ansible-inventory --inventory inventory/acceptance.yml --list > /dev/null
 	@echo "Inventory validation complete! ✅"
 
-## Build and Distribution Targets
-# Build and Distribution
+# ================================================
+# BUILD AND DISTRIBUTION TARGETS
+# ================================================
+
 clean: ## Clean build artifacts
 	rm -rf build/
 	rm -rf dist/
@@ -190,8 +208,10 @@ build-wheel: install-dev clean ## Build wheel package only
 	$(VENV_PYTHON) -m build --wheel
 	@echo "Wheel build complete! ✅"
 
-## Development Environment Targets
-# Development Environment
+# ================================================
+# DEVELOPMENT ENVIRONMENT TARGETS
+# ================================================
+
 setup-dev: python-check ## Set up development environment (RHEL9 optimized)
 	@echo "Setting up development environment for RHEL9..."
 	$(PYTHON3) -m venv $(VENV_DIR)
@@ -246,8 +266,10 @@ quickstart: ## Complete setup for new junior users
 	@echo ""
 	@echo "Documentation: Check the docs/ directory for detailed guides"
 
-## Ansible and Inventory Targets
-# Ansible specific commands
+# ================================================
+# ANSIBLE AND INVENTORY TARGETS
+# ================================================
+
 ansible-check: ## Check Ansible playbook syntax
 	@echo "Checking Ansible configuration..."
 	ansible --version
@@ -284,7 +306,6 @@ csv-backup: ## Create CSV backup
 	cp inventory_source/hosts.csv inventory_source/hosts_$(shell date +%Y%m%d_%H%M%S).backup
 	@echo "Backup created! ✅"
 
-# Inventory import functionality
 import-dry-run: install-dev ## Test import of external inventory (requires INVENTORY_FILE)
 	@if [ -z "$(INVENTORY_FILE)" ]; then \
 		echo "Usage: make import-dry-run INVENTORY_FILE=/path/to/inventory.yml"; \
@@ -317,8 +338,10 @@ import-help: ## Show import usage examples
 	@echo "  $(VENV_PYTHON) scripts/ansible_inventory_cli.py import --help"
 	@echo "  $(VENV_PYTHON) scripts/inventory_import.py --help"
 
-## CI/CD Targets
-# CI/CD helpers
+# ================================================
+# CI/CD TARGETS
+# ================================================
+
 ci-install: ## Install for CI environment
 	$(VENV_PIP) install -e ".[dev,test]"
 
@@ -330,18 +353,22 @@ ci-lint: ## Run linting in CI environment
 	$(VENV_DIR)/bin/mypy scripts/ --xml-report=mypy-report
 	$(VENV_DIR)/bin/bandit -r scripts/ -f json -o bandit-report.json
 
-## Version and Backup Targets
-# Version management
+# ================================================
+# VERSION AND BACKUP TARGETS
+# ================================================
+
 version: install-dev ## Show current version
 	@$(VENV_PYTHON) -c "import scripts.core.config as config; print(f'Version: {getattr(config, \"VERSION\", \"unknown\")}')"
 
-# Database/CSV operations
 backup-all: ## Backup all important files
 	@echo "Creating comprehensive backup..."
 	cp inventory_source/hosts.csv inventory_source/hosts_$(shell date +%Y%m%d_%H%M%S).backup
 	@echo "Backup complete! ✅"
 
-# Performance testing
+# ================================================
+# PERFORMANCE AND MONITORING TARGETS
+# ================================================
+
 perf-test: install-dev ## Run performance tests
 	@echo "Running performance tests..."
 	timeout 300 time $(VENV_PYTHON) scripts/ansible_inventory_cli.py health || echo "Timeout occurred"
@@ -349,7 +376,14 @@ perf-test: install-dev ## Run performance tests
 	$(VENV_DIR)/bin/mprof run $(VENV_PYTHON) scripts/ansible_inventory_cli.py health
 	@echo "Performance test complete! ⚡"
 
-# Documentation checks
+watch: install-dev ## Watch for changes in CSV and regenerate inventory
+	@echo "Watching for changes in inventory_source/hosts.csv..."
+	@ls inventory_source/hosts.csv | entr make generate
+
+# ================================================
+# DOCUMENTATION TARGETS
+# ================================================
+
 docs-check: ## Run spell and style checks on documentation
 	@echo "Running cspell on markdown files..."
 	cspell --no-progress "**/*.md"
@@ -357,12 +391,10 @@ docs-check: ## Run spell and style checks on documentation
 	vale --minAlertLevel=error .
 	@echo "Documentation checks complete! ✅"
 
-# Watch targets
-watch: install-dev ## Watch for changes in CSV and regenerate inventory
-	@echo "Watching for changes in inventory_source/hosts.csv..."
-	@ls inventory_source/hosts.csv | entr make generate
+# ================================================
+# CONTAINER MANAGEMENT (PODMAN) - RHEL9 DEFAULT
+# ================================================
 
-## Container Management (Podman) - RHEL9 Default
 podman-build: ## Build Podman image (RHEL9 optimized)
 	podman build -t ansible-inventory-cli .
 
@@ -372,7 +404,10 @@ podman-run: ## Run Podman container
 podman-test: ## Run tests in Podman container
 	podman run ansible-inventory-cli make test
 
-## RHEL9 System Integration
+# ================================================
+# RHEL9 SYSTEM INTEGRATION
+# ================================================
+
 rhel9-install-system-deps: ## Install system dependencies on RHEL9
 	@echo "Installing RHEL9 system dependencies..."
 	@echo "Note: This requires sudo privileges"
