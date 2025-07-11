@@ -248,6 +248,7 @@ class InventoryManager:
             self.stats.orphaned_files_removed = orphaned_count
 
             return {
+                "status": "success",
                 "generated_files": generated_files,
                 "dry_run": dry_run,
                 "stats": self.stats.__dict__,
@@ -259,10 +260,20 @@ class InventoryManager:
 
         except FileNotFoundError as e:
             self.logger.error(f"CSV source file not found: {e}")
-            raise
+            return {
+                "status": "error",
+                "error": f"CSV source file not found: {e}",
+                "generated_files": [],
+                "dry_run": dry_run,
+            }
         except Exception as e:
             self.logger.error(f"Inventory generation failed: {e}", exc_info=True)
-            raise ValueError(f"Failed to generate inventories: {e}") from e
+            return {
+                "status": "error",
+                "error": f"Failed to generate inventories: {e}",
+                "generated_files": [],
+                "dry_run": dry_run,
+            }
 
     def create_host_vars(self, host: Host, host_vars_dir: Path) -> None:
         """Create host_vars file for a host.

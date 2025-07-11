@@ -73,27 +73,30 @@ def get_logger(name: str) -> logging.Logger:
     return logger
 
 
-def setup_logging(level: str = "INFO") -> None:
-    """Configure logging for the application.
-
-    Sets up the root logger with appropriate formatting and level.
+def setup_logging(level: str = "INFO", name: Optional[str] = None) -> logging.Logger:
+    """Set up logging configuration.
 
     Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        name: Logger name (optional)
+
+    Returns:
+        Configured logger instance
     """
-    logger = get_logger(__name__)
-
-    # Validate log level
-    valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-    if level.upper() not in valid_levels:
-        logger.warning(f"Invalid log level '{level}', defaulting to INFO")
-        level = "INFO"
-
+    # Configure basic logging
     logging.basicConfig(
         level=getattr(logging, level.upper()),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+        ],
     )
-    logger.info(f"Logging configured at {level} level")
+    
+    # Return the logger instance
+    if name:
+        return logging.getLogger(name)
+    else:
+        return logging.getLogger(__name__)
 
 
 def load_csv_data(
@@ -118,6 +121,10 @@ def load_csv_data(
     csv_file = _resolve_csv_file(csv_file)
 
     try:
+        # Increase CSV field size limit to handle large data (but prevent DoS)
+        old_field_size_limit = csv.field_size_limit()
+        csv.field_size_limit(1000000)  # 1MB limit
+        
         with file_lock(csv_file, "r", timeout=10) as f:
             reader = csv.DictReader(f)
             _validate_csv_fields(reader, required_fields)
@@ -134,7 +141,15 @@ def load_csv_data(
         )
         raise
     except csv.Error as e:
+        if "field larger than field limit" in str(e):
+            raise ValueError(f"CSV field too large - possible DoS attack: {e}")
         raise ValueError(f"CSV parsing error: {e}")
+    finally:
+        # Restore original field size limit
+        try:
+            csv.field_size_limit(old_field_size_limit)
+        except:
+            pass
 
 
 def _resolve_csv_file(csv_file: Optional[Path]) -> Path:
@@ -223,15 +238,20 @@ def validate_hostname_decorator(func: Any) -> Any:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         hostname = kwargs.get("hostname") or (args[0] if args else None)
         if not hostname or not hostname.strip():
-            raise ValueError("Hostname is required and cannot be empty")
+            raise ValueError("Hostname cannot be empty")
 
         # Basic hostname validation
         hostname = hostname.strip()
         if len(hostname) > 63:
-            raise ValueError("Hostname too long (max 63 characters)")
+            raise ValueError("Invalid hostname: too long (max 63 characters)")
 
-        if not hostname.replace("-", "").replace("_", "").isalnum():
-            raise ValueError("Hostname contains invalid characters")
+        # Check for invalid characters (only alphanumeric and hyphens allowed)
+        if not re.match(r'^[a-zA-Z0-9-]+$', hostname):
+            raise ValueError("Invalid hostname: contains invalid characters (only alphanumeric and hyphens allowed)")
+
+        # Check for double hyphens or hyphens at start/end
+        if hostname.startswith('-') or hostname.endswith('-') or '--' in hostname:
+            raise ValueError("Invalid hostname: invalid hyphen placement")
 
         return func(*args, **kwargs)
 
@@ -243,8 +263,12 @@ def validate_environment_decorator(func: Any) -> Any:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        environment = kwargs.get("environment")
-        if environment and environment not in ENVIRONMENTS:
+        environment = kwargs.get("environment") or (args[0] if args else None)
+        if not environment or not environment.strip():
+            raise ValueError("Environment cannot be empty")
+        
+        environment = environment.strip()
+        if environment not in ENVIRONMENTS:
             raise ValueError(
                 f"Invalid environment '{environment}'. "
                 f"Must be one of: {', '.join(ENVIRONMENTS)}"
@@ -254,33 +278,41 @@ def validate_environment_decorator(func: Any) -> Any:
     return wrapper
 
 
-def load_hosts_from_csv(csv_file: Optional[str] = None) -> List[Dict[str, str]]:
+def load_hosts_from_csv(csv_file: Optional[str] = None) -> List[Any]:
     """Load all hosts from the CSV file.
 
     Args:
         csv_file: Path to CSV file. If None, uses default from config.
 
     Returns:
-        List of host dictionaries
+        List of Host objects
 
     Raises:
         FileNotFoundError: If CSV file doesn't exist
         ValueError: If CSV file cannot be parsed
     """
+    from .models import Host
+
     if csv_file is None:
         csv_file = str(CSV_FILE)
 
-    hosts: List[Dict[str, str]] = []
+    hosts = []
     if not os.path.exists(csv_file):
         raise FileNotFoundError(f"CSV file not found: {csv_file}")
 
     try:
-        with open(csv_file, "r") as f:
+        with open(csv_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 hostname = row.get("hostname", "").strip()
                 if hostname and not hostname.startswith("#"):
-                    hosts.append(row)
+                    try:
+                        host = Host.from_csv_row(row)
+                        hosts.append(host)
+                    except ValueError as e:
+                        logger = get_logger(__name__)
+                        logger.warning(f"Skipping invalid host {hostname}: {e}")
+                        continue
     except Exception as e:
         logger = get_logger(__name__)
         logger.error(f"Error reading CSV file {csv_file}: {e}")
@@ -291,7 +323,7 @@ def load_hosts_from_csv(csv_file: Optional[str] = None) -> List[Dict[str, str]]:
 
 def get_hosts_by_environment(
     environment: str, csv_file: Optional[str] = None
-) -> List[Dict[str, str]]:
+) -> List[Any]:
     """Get all hosts for a specific environment.
 
     Args:
@@ -299,7 +331,7 @@ def get_hosts_by_environment(
         csv_file: Path to CSV file. If None, uses default from config.
 
     Returns:
-        List of host dictionaries for the environment
+        List of Host objects for the environment
 
     Raises:
         FileNotFoundError: If CSV file doesn't exist
@@ -307,13 +339,13 @@ def get_hosts_by_environment(
     """
     all_hosts = load_hosts_from_csv(csv_file)
     return [
-        host for host in all_hosts if host.get("environment", "").strip() == environment
+        host for host in all_hosts if host.environment == environment
     ]
 
 
 def get_hosts_by_status(
     status: str, csv_file: Optional[str] = None
-) -> List[Dict[str, str]]:
+) -> List[Any]:
     """Get all hosts with a specific status.
 
     Args:
@@ -321,7 +353,7 @@ def get_hosts_by_status(
         csv_file: Path to CSV file. If None, uses default from config.
 
     Returns:
-        List of host dictionaries with the status
+        List of Host objects with the status
 
     Raises:
         FileNotFoundError: If CSV file doesn't exist
@@ -331,7 +363,7 @@ def get_hosts_by_status(
     return [
         host
         for host in all_hosts
-        if host.get("status", "").strip().lower() == status.lower()
+        if host.status.lower() == status.lower()
     ]
 
 
@@ -349,7 +381,7 @@ def get_hostnames_from_csv(csv_file: Optional[str] = None) -> Set[str]:
         ValueError: If CSV file cannot be parsed
     """
     hosts = load_hosts_from_csv(csv_file)
-    return {host["hostname"] for host in hosts if host.get("hostname", "").strip()}
+    return {host.hostname for host in hosts if host.hostname}
 
 
 def get_host_vars_files() -> Set[str]:
@@ -382,13 +414,10 @@ def find_orphaned_host_vars(csv_file: Optional[str] = None) -> Set[str]:
     csv_identifiers = set()
 
     for host in hosts:
-        hostname = host.get("hostname", "").strip()
-        cname = host.get("cname", "").strip()
-
-        if hostname:
-            csv_identifiers.add(hostname)
-        if cname:
-            csv_identifiers.add(cname)
+        if host.hostname:
+            csv_identifiers.add(host.hostname)
+        if host.cname:
+            csv_identifiers.add(host.cname)
 
     # Get all host_vars files
     host_vars_files = get_host_vars_files()
@@ -569,40 +598,79 @@ def ensure_directory_exists(directory_path: str) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def test_ansible_inventory() -> Tuple[bool, str]:
+def test_ansible_inventory(inventory_file: Optional[str] = None) -> Dict[str, Any]:
     """Test if ansible-inventory command works.
 
+    Args:
+        inventory_file: Path to inventory file to test (optional)
+
     Returns:
-        Tuple of (success, error_message)
+        Dictionary with validation results
     """
-    success, stdout, stderr = run_ansible_command(["ansible-inventory", "--list"])
-
-    if not success:
-        return False, f"ansible-inventory failed: {stderr}"
-
-    # Check if output is valid JSON
     try:
-        import json
+        # Build command args
+        args = ["ansible-inventory", "--list"]
+        if inventory_file:
+            args.extend(["--inventory", inventory_file])
+        
+        success, stdout, stderr = run_ansible_command(args)
+        
+        if not success:
+            return {
+                "valid": False,
+                "returncode": 1,
+                "stderr": stderr,
+                "error": f"ansible-inventory failed: {stderr}"
+            }
 
-        json.loads(stdout)
-        return True, ""
-    except json.JSONDecodeError:
-        return False, "ansible-inventory output is not valid JSON"
+        # Check if output is valid JSON
+        try:
+            import json
+            json.loads(stdout)
+            return {
+                "valid": True,
+                "returncode": 0,
+                "stdout": stdout
+            }
+        except json.JSONDecodeError:
+            return {
+                "valid": False,
+                "returncode": 1,
+                "error": "ansible-inventory output is not valid JSON",
+                "stdout": stdout
+            }
+    except FileNotFoundError as e:
+        return {
+            "valid": False,
+            "returncode": 1,
+            "error": str(e)
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "returncode": 1,
+            "error": f"Unexpected error: {e}"
+        }
 
 
 def create_backup_file(source_file: str, backup_dir: Optional[str] = None) -> str:
-    """Create a timestamped backup of a file.
+    """Create a backup of a file with timestamp.
 
     Args:
-        source_file: Path to file to backup
-        backup_dir: Directory for backup. If None, uses source directory.
+        source_file: Path to source file
+        backup_dir: Directory to create backup in (optional)
 
     Returns:
         Path to backup file
-    """
-    import shutil
 
+    Raises:
+        OSError: If backup cannot be created
+    """
     source_path = Path(source_file)
+    
+    # Check if source file exists
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source file does not exist: {source_file}")
 
     if backup_dir is None:
         backup_dir_path = source_path.parent
@@ -619,13 +687,13 @@ def create_backup_file(source_file: str, backup_dir: Optional[str] = None) -> st
 
 
 def save_yaml_file(
-    data: Dict, file_path: str, header_comment: Optional[str] = None
+    file_path: str, data: Dict, header_comment: Optional[str] = None
 ) -> None:
     """Save data to a YAML file with optional header comment.
 
     Args:
-        data: Data to save
         file_path: Path to save file
+        data: Data to save
         header_comment: Optional header comment
 
     Raises:
@@ -813,59 +881,75 @@ def get_file_age_days(file_path: str) -> Optional[int]:
 
 
 def validate_csv_headers(
-    csv_file: Path, expected_headers: List[str]
+    csv_file_or_headers, expected_headers: Optional[List[str]] = None
 ) -> ValidationResult:
     """Validate CSV headers against expected fields.
+    
+    This function can be called in two ways:
+    1. validate_csv_headers(headers_list) - validates headers against default expected headers
+    2. validate_csv_headers(csv_file, expected_headers) - validates CSV file headers against expected headers
 
     Args:
-        csv_file: Path to CSV file
-        expected_headers: List of expected header names
+        csv_file_or_headers: Either a Path to CSV file or a list of header strings
+        expected_headers: List of expected header names (optional for backwards compatibility)
 
     Returns:
         ValidationResult with any issues found
     """
+    from .config import get_csv_template_headers
+    
     result = ValidationResult()
+    
+    # Handle backwards compatibility: if first arg is a list, treat it as headers
+    if isinstance(csv_file_or_headers, list):
+        actual_headers = csv_file_or_headers
+        expected_headers = expected_headers or get_csv_template_headers()
+    else:
+        # New signature: csv_file + expected_headers
+        csv_file = csv_file_or_headers
+        if expected_headers is None:
+            expected_headers = get_csv_template_headers()
+        
+        try:
+            with csv_file.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                actual_headers = reader.fieldnames or []
+        except Exception as e:
+            result.add_error(f"Error reading CSV file: {e}")
+            return result
 
-    try:
-        with csv_file.open("r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            actual_headers = reader.fieldnames or []
+    # Check for missing required headers
+    missing_headers = set(expected_headers) - set(actual_headers)
+    if missing_headers:
+        result.add_error(
+            f"Missing required headers: {', '.join(sorted(missing_headers))}"
+        )
 
-            # Check for missing required headers
-            missing_headers = set(expected_headers) - set(actual_headers)
-            if missing_headers:
-                result.add_error(
-                    f"Missing required headers: {', '.join(sorted(missing_headers))}"
-                )
+    # Check for unexpected headers (warnings)
+    unexpected_headers = set(actual_headers) - set(expected_headers)
+    if unexpected_headers:
+        unexpected_list = ", ".join(sorted(unexpected_headers))
+        result.add_warning(
+            f"Unexpected headers (will be ignored): {unexpected_list}"
+        )
 
-            # Check for unexpected headers (warnings)
-            unexpected_headers = set(actual_headers) - set(expected_headers)
-            if unexpected_headers:
-                unexpected_list = ", ".join(sorted(unexpected_headers))
-                result.add_warning(
-                    f"Unexpected headers (will be ignored): {unexpected_list}"
-                )
+    # Check for case-insensitive matches
+    actual_lower = {h.lower(): h for h in actual_headers}
 
-            # Check for case-insensitive matches
-            actual_lower = {h.lower(): h for h in actual_headers}
+    case_mismatches = []
+    for expected in expected_headers:
+        if (
+            expected.lower() in actual_lower
+            and expected != actual_lower[expected.lower()]
+        ):
+            case_mismatches.append(
+                f"'{expected}' vs '{actual_lower[expected.lower()]}'"
+            )
 
-            case_mismatches = []
-            for expected in expected_headers:
-                if (
-                    expected.lower() in actual_lower
-                    and expected != actual_lower[expected.lower()]
-                ):
-                    case_mismatches.append(
-                        f"'{expected}' vs '{actual_lower[expected.lower()]}'"
-                    )
-
-            if case_mismatches:
-                result.add_warning(
-                    f"Case mismatches found: {', '.join(case_mismatches)}"
-                )
-
-    except Exception as e:
-        result.add_error(f"Error reading CSV file: {e}")
+    if case_mismatches:
+        result.add_warning(
+            f"Case mismatches found: {', '.join(case_mismatches)}"
+        )
 
     return result
 
