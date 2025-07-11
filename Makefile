@@ -24,7 +24,21 @@ help:
 	@echo "  lint                 Run all linting tools"
 	@echo "  format               Format code with black and isort"
 	@echo "  test                 Run tests"
+	@echo "  test-cov             Run tests with coverage"
+	@echo "  test-all             Run all tests with coverage threshold"
+	@echo "  test-unit            Run unit tests only"
+	@echo "  test-integration     Run integration tests only"
+	@echo "  test-e2e             Run end-to-end tests only"
+	@echo "  test-performance     Run performance tests only"
+	@echo "  test-security        Run security tests only"
+	@echo "  test-existing        Run existing tests only"
+	@echo "  test-parallel        Run tests in parallel"
+	@echo "  test-markers         Show available test markers"
+	@echo "  test-clean           Clean test artifacts"
+	@echo "  security             Run security checks"
 	@echo "  check                Run all quality checks"
+	@echo "  quality-check        Run comprehensive quality checks"
+	@echo "  performance-test     Run performance benchmarks"
 	@echo "  clean                Clean build artifacts"
 	@echo ""
 	@echo "CI/CD:"
@@ -45,7 +59,7 @@ test: ## Run tests
 	pytest -v
 
 test-cov: ## Run tests with coverage
-	pytest --cov=scripts --cov-report=html --cov-report=term-missing -v
+	pytest --cov=scripts --cov-report=html --cov-report=term-missing --cov-report=xml -v
 
 test-unit: ## Run unit tests only
 	pytest tests/ -m "unit" -v
@@ -55,6 +69,39 @@ test-integration: ## Run integration tests only
 
 test-e2e: ## Run end-to-end tests only
 	pytest tests/ -m "e2e" -v
+
+test-performance: ## Run performance tests only
+	pytest tests/test_performance.py -v
+
+test-security: ## Run security tests only
+	pytest tests/test_security.py -v
+
+test-existing: ## Run existing tests only
+	pytest tests/test_edge_cases.py tests/test_host_manager.py tests/test_instance_validation.py tests/test_inventory_generation.py -v
+
+test-all: ## Run all tests with coverage and fail if below threshold
+	pytest tests/ --cov=scripts --cov-report=html --cov-report=xml --cov-report=term-missing --cov-fail-under=80 -v
+
+test-parallel: ## Run tests in parallel
+	pytest tests/ -n auto -v
+
+test-markers: ## Show available test markers
+	@echo "Available test markers:"
+	@echo "  unit        - Unit tests"
+	@echo "  integration - Integration tests"
+	@echo "  e2e         - End-to-end tests"
+	@echo "  performance - Performance tests"
+	@echo "  security    - Security tests"
+	@echo "  slow        - Slow running tests"
+
+test-clean: ## Clean test artifacts
+	rm -rf htmlcov/
+	rm -rf .coverage
+	rm -rf coverage.xml
+	rm -rf .pytest_cache/
+	rm -rf security-report.json
+	rm -rf safety-report.json
+	rm -rf benchmark-results.json
 
 # Code Quality
 lint: ## Run all linting tools
@@ -83,7 +130,7 @@ security: ## Run security checks
 	@echo "Running bandit security scan..."
 	bandit -r scripts/ -f json -o security-report.json || true
 	@echo "Running safety check..."
-	safety check || true
+	safety check --json --output safety-report.json || true
 	@echo "Security scan complete!"
 	@echo "📊 Security Summary:"
 	@if [ -f security-report.json ]; then \
@@ -91,6 +138,12 @@ security: ## Run security checks
 		echo "  - Review for any high/medium severity issues"; \
 	else \
 		echo "  - No security report generated"; \
+	fi
+	@if [ -f safety-report.json ]; then \
+		echo "  - Safety report generated: safety-report.json"; \
+		echo "  - Review for any vulnerable dependencies"; \
+	else \
+		echo "  - No safety report generated"; \
 	fi
 
 # Pre-commit
@@ -103,6 +156,12 @@ pre-commit-update: ## Update pre-commit hooks
 # Project Health
 check: format-check lint test ## Run all quality checks
 	@echo "All checks passed! ✅"
+
+quality-check: format-check lint test-cov security ## Run comprehensive quality checks
+	@echo "Comprehensive quality checks passed! ✅"
+
+performance-test: ## Run performance benchmarks
+	pytest tests/test_performance.py --benchmark-only --benchmark-json=benchmark-results.json || true
 
 health-check: ## Run inventory health check
 	@echo "Running inventory health check..."
