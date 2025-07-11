@@ -364,30 +364,29 @@ safety check
 
 ---
 
-## 🔄 CI/CD Integration
+## 🔄 Local Testing Integration
 
-### GitHub Actions
-The testing suite is integrated with GitHub Actions:
+### Makefile-Based Testing
+The testing suite is designed for local execution using Makefile commands:
 
-**File:** `.github/workflows/comprehensive-testing.yml`
+### Quality Assurance Workflow
+1. **Code Quality** - Linting and formatting (`make lint`, `make format`)
+2. **Security** - Vulnerability scanning (`make security`)
+3. **Unit Tests** - Component testing (`make test-unit`)
+4. **Integration Tests** - Component interactions (`make test-integration`)
+5. **Performance Tests** - Benchmarking (`make test-performance`)
+6. **Security Tests** - Vulnerability testing (`make test-security`)
+7. **Comprehensive Testing** - All tests with coverage (`make test-all`)
 
-### Pipeline Stages
-1. **Code Quality** - Linting and formatting
-2. **Security** - Vulnerability scanning
-3. **Unit Tests** - Multi-OS and multi-Python
-4. **Integration Tests** - Component interactions
-5. **E2E Tests** - Complete workflows
-6. **Performance Tests** - Benchmarking
-7. **Compatibility Tests** - Ansible versions
-8. **Reporting** - Comprehensive results
+### Continuous Integration Ready
+The Makefile commands can be easily integrated into any CI/CD system:
 
-### Manual Pipeline Trigger
 ```bash
-# Trigger workflow
-gh workflow run comprehensive-testing.yml
-
-# Trigger with specific branch
-gh workflow run comprehensive-testing.yml --ref feature/branch
+# Example CI workflow
+make install-dev
+make quality-check
+make test-all
+make security
 ```
 
 ---

@@ -51,8 +51,6 @@ dev = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "ruff>=0.1.0",
-    "cspell>=6.0.0",
-    "vale>=2.0.0",
 ]
 test = [
     "pytest>=7.0.0",

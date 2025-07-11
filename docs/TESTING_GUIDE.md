@@ -432,62 +432,58 @@ def test_performance_scaling(host_count):
 
 ---
 
-## 🔄 CI/CD Pipeline
+## 🔄 Local Testing Workflow
 
-### GitHub Actions Workflow
-**File:** `.github/workflows/comprehensive-testing.yml`
+### Makefile-Based Testing
+The testing suite is designed to run locally using Makefile commands, providing full control over the testing process.
 
-The CI/CD pipeline automatically runs on:
-- **Push** to main, develop, or feature branches
-- **Pull requests** to main or develop
-- **Scheduled** nightly runs at 2 AM UTC
+### Available Test Commands
 
-### Pipeline Stages
-
-1. **Code Quality** - Linting and formatting checks
-2. **Security** - Vulnerability scanning
-3. **Unit Tests** - Multi-OS and multi-Python testing
-4. **Integration Tests** - Component interaction testing
-5. **E2E Tests** - Complete workflow validation
-6. **Performance Tests** - Benchmark validation
-7. **Compatibility Tests** - Ansible version compatibility
-8. **Documentation Tests** - Documentation validation
-9. **Deployment Tests** - Package building and testing
-10. **Reporting** - Comprehensive test reporting
-
-### Manual Pipeline Triggers
-
+**Basic Testing:**
 ```bash
-# Trigger specific workflow
-gh workflow run comprehensive-testing.yml
-
-# Trigger with specific branch
-gh workflow run comprehensive-testing.yml --ref feature/new-feature
+make test                    # Run all tests
+make test-cov               # Run tests with coverage
+make test-unit              # Run unit tests only
+make test-integration       # Run integration tests only
+make test-e2e               # Run end-to-end tests only
 ```
 
-### Pipeline Configuration
+**Specialized Testing:**
+```bash
+make test-performance       # Run performance tests only
+make test-security          # Run security tests only
+make test-existing          # Run existing tests only
+make test-parallel          # Run tests in parallel
+make test-all              # Run all tests with coverage threshold
+```
 
-```yaml
-# Example workflow configuration
-name: Comprehensive Testing Suite
+**Quality Assurance:**
+```bash
+make quality-check          # Run comprehensive quality checks
+make security              # Run security scans
+make performance-test      # Run performance benchmarks
+make lint                  # Run code linting
+make format                # Format code
+```
 
-on:
-  push:
-    branches: [ main, develop, 'feature/*' ]
-  pull_request:
-    branches: [ main, develop ]
+### Testing Workflow
 
-env:
-  PYTHON_VERSION: '3.11'
-  COVERAGE_THRESHOLD: 80
+1. **Development Testing** - Run relevant tests during development
+2. **Pre-commit Testing** - Run quality checks before committing
+3. **Integration Testing** - Test component interactions
+4. **Performance Testing** - Validate performance benchmarks
+5. **Security Testing** - Check for vulnerabilities
 
-jobs:
-  unit-tests:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+### Continuous Integration Options
+
+While GitHub Actions are not currently configured, the Makefile commands can be easily integrated into any CI/CD system:
+
+```bash
+# Example CI script
+make install-dev
+make quality-check
+make test-all
+make security
 ```
 
 ---
