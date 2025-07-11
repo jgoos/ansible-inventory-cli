@@ -123,6 +123,24 @@ class HostManager:
         log_file_access(self.csv_file, "WRITE", success=True)
         self.logger.info(f"Updated CSV file: {self.csv_file}")
 
+    def load_hosts(self, environment: Optional[str] = None) -> List[Any]:
+        """Load hosts from CSV, optionally filtered by environment.
+
+        Args:
+            environment: Optional environment to filter by
+
+        Returns:
+            List of Host objects
+        """
+        from ..core.utils import load_hosts_from_csv
+
+        hosts = load_hosts_from_csv(str(self.csv_file))
+        
+        if environment:
+            hosts = [host for host in hosts if host.environment == environment]
+        
+        return hosts
+
     @security_audit_log("Host decommission operation")
     def decommission_host(
         self, hostname: str, date: str, reason: str = "", dry_run: bool = False
