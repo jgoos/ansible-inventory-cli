@@ -7,15 +7,12 @@ including file consistency checks, orphaned file detection, and health scoring.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core import get_logger
 from ..managers.validation_manager import ValidationManager
-
 from .base import BaseCommand, CommandResult
-
 
 
 class HealthCommand(BaseCommand):

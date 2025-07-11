@@ -9,6 +9,12 @@ help:
 	@echo "Ansible Inventory CLI - Makefile Commands"
 	@echo "========================================="
 	@echo ""
+	@echo "🚀 Quick Start (for new users):"
+	@echo "  check-dependencies   Check if all required dependencies are installed"
+	@echo "  setup-dev            Set up development environment"
+	@echo "  install-dev          Install development dependencies"
+	@echo "  quickstart           Complete setup for new users"
+	@echo ""
 	@echo "Inventory Management:"
 	@echo "  generate             Generate inventory from CSV (safe, cleans up only obsolete host_vars)"
 	@echo "  generate-dry-run     Show what would be generated (dry run)"
@@ -46,7 +52,7 @@ help:
 	@echo "  ci-test              Run tests in CI environment"
 	@echo ""
 
-# Installation
+# Installation (using pyproject.toml as single source of truth)
 install: ## Install the package
 	pip install -e .
 
@@ -130,7 +136,7 @@ security: ## Run security checks
 	@echo "Running bandit security scan..."
 	bandit -r scripts/ -f json -o security-report.json || true
 	@echo "Running safety check..."
-	safety check --json --output safety-report.json || true
+	safety check --output json > safety-report.json || true
 	@echo "Security scan complete!"
 	@echo "📊 Security Summary:"
 	@if [ -f security-report.json ]; then \
@@ -201,6 +207,54 @@ setup-dev: ## Set up development environment
 	python -m venv venv
 	@echo "Virtual environment created. Activate with: source venv/bin/activate"
 	@echo "Then run: make install-dev"
+
+check-dependencies: ## Check if all required dependencies are installed
+	@echo "🔍 Checking dependencies..."
+	@python -c "import sys; print(f'Python version: {sys.version}')"
+	@python -c "import pytest; print('✅ pytest installed')" || echo "❌ pytest missing - run 'make install-dev'"
+	@python -c "import black; print('✅ black installed')" || echo "❌ black missing - run 'make install-dev'"
+	@python -c "import flake8; print('✅ flake8 installed')" || echo "❌ flake8 missing - run 'make install-dev'"
+	@python -c "import yaml; print('✅ PyYAML installed')" || echo "❌ PyYAML missing - run 'make install-dev'"
+	@python -c "import memory_profiler; print('✅ memory_profiler installed')" || echo "❌ memory_profiler missing - run 'make install-dev'"
+	@python -c "import pytest_xdist; print('✅ pytest-xdist installed')" || echo "❌ pytest-xdist missing - run 'make install-dev'"
+	@python -c "import pytest_benchmark; print('✅ pytest-benchmark installed')" || echo "❌ pytest-benchmark missing - run 'make install-dev'"
+	@which yamllint > /dev/null && echo "✅ yamllint installed" || echo "❌ yamllint missing - run 'make install-dev'"
+	@which ansible > /dev/null && echo "✅ ansible installed" || echo "❌ ansible missing - install with 'pip install ansible'"
+	@echo "✅ Dependency check complete!"
+
+quickstart: ## Complete setup for new junior users
+	@echo "🚀 QUICKSTART - Setting up Ansible Inventory CLI for new users"
+	@echo "================================================================"
+	@echo ""
+	@echo "Step 1: Installing dependencies..."
+	@$(MAKE) install-dev
+	@echo ""
+	@echo "Step 2: Checking dependencies..."
+	@$(MAKE) check-dependencies
+	@echo ""
+	@echo "Step 3: Running basic validation..."
+	@$(MAKE) validate
+	@echo ""
+	@echo "Step 4: Running health check..."
+	@$(MAKE) health-check
+	@echo ""
+	@echo "Step 5: Formatting code..."
+	@$(MAKE) format
+	@echo ""
+	@echo "Step 6: Running tests..."
+	@$(MAKE) test
+	@echo ""
+	@echo "🎉 QUICKSTART COMPLETE!"
+	@echo "======================"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  • Run 'make help' to see all available commands"
+	@echo "  • Run 'make generate-dry-run' to see what inventory would be generated"
+	@echo "  • Run 'make generate' to generate inventory from CSV"
+	@echo "  • Run 'make lint' to check code quality"
+	@echo "  • Run 'make test-cov' to run tests with coverage"
+	@echo ""
+	@echo "Documentation: Check the docs/ directory for detailed guides"
 
 # Ansible specific commands
 ansible-check: ## Check Ansible playbook syntax

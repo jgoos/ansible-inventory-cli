@@ -6,7 +6,6 @@ Handles the generation of Ansible inventory files and host_vars
 from CSV data sources.
 """
 
-import sys
 import time
 from collections import defaultdict
 from datetime import datetime

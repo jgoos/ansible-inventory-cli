@@ -1,7 +1,0 @@
----
-# Host variables for web01
-# Generated from enhanced CSV with CMDB and patch management fields
-
-hostname: web01
-status: active
-support_group: ''

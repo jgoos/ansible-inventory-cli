@@ -1,7 +1,0 @@
----
-# Host variables for db01
-# Generated from enhanced CSV with CMDB and patch management fields
-
-hostname: db01
-status: active
-support_group: ''

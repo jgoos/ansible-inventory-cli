@@ -291,6 +291,9 @@ docs/_build/
 .profile
 *.prof
 *.profdata
+benchmark-results.json
+benchmark-results-*.json
+*.benchmark-results
 
 # Local environment overrides
 local_config.py
@@ -311,5 +314,8 @@ security-report.json
 security-report-*.json
 bandit-report.json
 bandit-report-*.json
+safety-report.json
+safety-report-*.json
 *.security-report
-*.bandit-report 
+*.bandit-report
+*.safety-report 
