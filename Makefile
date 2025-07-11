@@ -11,7 +11,7 @@ VENV_DIR := .venv
 # Ensure Python3 is available (RHEL9 default)
 PYTHON_VERSION_CHECK := $(shell $(PYTHON3) --version 2>/dev/null | grep -q "Python 3" && echo "OK" || echo "MISSING")
 
-.PHONY: help install install-dev test test-cov lint format security clean build pre-commit check health-check python-check
+.PHONY: help help-color help-simple test-terminal install install-dev test test-cov lint format security clean build pre-commit check health-check python-check
 
 # ================================================
 # DEFAULT TARGET
