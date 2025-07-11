@@ -509,6 +509,18 @@ def run_ansible_command(
         logger.error("Invalid arguments provided to run_ansible_command")
         return False, "", "Invalid command arguments"
 
+    # Basic sanitization to avoid accidental shell injection
+    unsafe_pattern = re.compile(r"[;&|`$<>]")
+    sanitized_args: List[str] = []
+    for arg in args:
+        if not isinstance(arg, str):
+            logger.error("Non-string argument provided to run_ansible_command")
+            return False, "", "Invalid command arguments"
+        if unsafe_pattern.search(arg):
+            logger.error(f"Unsafe characters detected in argument: {arg}")
+            return False, "", "Unsafe characters in command arguments"
+        sanitized_args.append(arg)
+
     # Log the command being run (but be careful not to log sensitive data)
     logger.debug(
         f"Running command: {' '.join(args[:2])}..."
@@ -517,7 +529,7 @@ def run_ansible_command(
     try:
         # Set timeout to prevent hanging
         result = subprocess.run(
-            args,
+            sanitized_args,
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -671,7 +683,7 @@ def load_yaml_file(file_path: str) -> Optional[Dict[str, Any]]:
 
         # Try to read and parse the file with file locking
         try:
-            with file_lock(path_obj, "r", timeout=10) as f:
+            with file_lock(path_obj, "r", timeout=10, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
                 # Ensure we return a dict or None
@@ -1181,7 +1193,9 @@ def log_security_event(event_type: str, details: str, level: str = "INFO") -> No
 
 
 @contextlib.contextmanager
-def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
+def file_lock(
+    file_path: Path, mode: str = "r", timeout: int = 30, encoding: str = "utf-8"
+) -> Generator:
     """Context manager for file locking to prevent concurrent access.
 
     Uses :mod:`fcntl` on POSIX systems and :mod:`msvcrt` on Windows. If neither
@@ -1207,7 +1221,7 @@ def file_lock(file_path: Path, mode: str = "r", timeout: int = 30) -> Generator:
 
     try:
         # Open file
-        file_handle = open(file_path, mode, encoding="utf-8")
+        file_handle = open(file_path, mode, encoding=encoding)
 
         if not (fcntl or msvcrt):
             logger.warning(
