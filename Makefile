@@ -136,7 +136,7 @@ security: ## Run security checks
 	@echo "Running bandit security scan..."
 	bandit -r scripts/ -f json -o security-report.json || true
 	@echo "Running safety check..."
-	safety check --output json > safety-report.json || true
+	safety check --json --output safety-report.json || true
 	@echo "Security scan complete!"
 	@echo "📊 Security Summary:"
 	@if [ -f security-report.json ]; then \
