@@ -8,7 +8,6 @@ and health monitoring with scoring and recommendations.
 
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

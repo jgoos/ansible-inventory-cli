@@ -7,15 +7,12 @@ cleanup, and expired host management.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core import get_logger
 from ..managers.host_manager import HostManager
-
 from .base import BaseCommand, CommandResult
-
 
 
 class LifecycleCommand(BaseCommand):

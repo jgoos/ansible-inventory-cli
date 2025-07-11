@@ -9,7 +9,6 @@ cleanup, and host status management.
 import csv
 import re
 import shutil
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -92,7 +91,9 @@ class HostManager:
                     list(reader.fieldnames) if reader.fieldnames else []
                 )
         except (OSError, IOError) as e:
-            self.logger.warning(f"Could not read original fieldnames from {self.csv_file}: {e}")
+            self.logger.warning(
+                f"Could not read original fieldnames from {self.csv_file}: {e}"
+            )
             original_fieldnames = []
         except Exception as e:
             self.logger.error(f"Unexpected error reading CSV file: {e}")

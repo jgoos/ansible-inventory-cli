@@ -17,7 +17,7 @@ import yaml
 
 def _get_version_from_pyproject() -> str:
     """Get version from pyproject.toml file.
-    
+
     Returns:
         Version string from pyproject.toml, or fallback version if not found.
     """
@@ -25,18 +25,20 @@ def _get_version_from_pyproject() -> str:
         # Try to use importlib.metadata first (Python 3.8+)
         try:
             from importlib.metadata import version
+
             return version("ansible-inventory-cli")
         except ImportError:
             try:
                 from importlib_metadata import version
+
                 return version("ansible-inventory-cli")
             except ImportError:
                 pass
-        
+
         # Fallback: parse pyproject.toml directly
         project_root = Path(__file__).parent.parent.parent
         pyproject_path = project_root / "pyproject.toml"
-        
+
         if pyproject_path.exists():
             with open(pyproject_path, "r") as f:
                 content = f.read()
@@ -45,7 +47,7 @@ def _get_version_from_pyproject() -> str:
                     return match.group(1)
     except Exception:
         pass
-    
+
     # Final fallback
     return "2.0.0"
 

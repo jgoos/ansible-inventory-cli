@@ -9,6 +9,12 @@ help:
 	@echo "Ansible Inventory CLI - Makefile Commands"
 	@echo "========================================="
 	@echo ""
+	@echo "🚀 Quick Start (for new users):"
+	@echo "  check-dependencies   Check if all required dependencies are installed"
+	@echo "  setup-dev            Set up development environment"
+	@echo "  install-dev          Install development dependencies"
+	@echo "  quickstart           Complete setup for new users"
+	@echo ""
 	@echo "Inventory Management:"
 	@echo "  generate             Generate inventory from CSV (safe, cleans up only obsolete host_vars)"
 	@echo "  generate-dry-run     Show what would be generated (dry run)"
@@ -46,7 +52,7 @@ help:
 	@echo "  ci-test              Run tests in CI environment"
 	@echo ""
 
-# Installation
+# Installation (using pyproject.toml as single source of truth)
 install: ## Install the package
 	pip install -e .
 
@@ -165,7 +171,7 @@ performance-test: ## Run performance benchmarks
 
 health-check: ## Run inventory health check
 	@echo "Running inventory health check..."
-	python scripts/ansible_inventory_cli.py health
+	python3 scripts/ansible_inventory_cli.py health
 
 validate: ## Validate inventory structure
 	@echo "Validating inventory structure..."
@@ -190,17 +196,65 @@ clean: ## Clean build artifacts
 	find . -type f -name "*.pyo" -delete
 
 build: clean ## Build distribution packages
-	python -m build
+	python3 -m build
 
 build-wheel: clean ## Build wheel package only
-	python -m build --wheel
+	python3 -m build --wheel
 
 # Development Environment
 setup-dev: ## Set up development environment
 	@echo "Setting up development environment..."
-	python -m venv venv
+	python3 -m venv venv
 	@echo "Virtual environment created. Activate with: source venv/bin/activate"
 	@echo "Then run: make install-dev"
+
+check-dependencies: ## Check if all required dependencies are installed
+	@echo "🔍 Checking dependencies..."
+	@python3 -c "import sys; print(f'Python version: {sys.version}')"
+	@python3 -c "import pytest; print('✅ pytest installed')" || echo "❌ pytest missing - run 'make install-dev'"
+	@python3 -c "import black; print('✅ black installed')" || echo "❌ black missing - run 'make install-dev'"
+	@python3 -c "import flake8; print('✅ flake8 installed')" || echo "❌ flake8 missing - run 'make install-dev'"
+	@python3 -c "import yaml; print('✅ PyYAML installed')" || echo "❌ PyYAML missing - run 'make install-dev'"
+	@python3 -c "import memory_profiler; print('✅ memory_profiler installed')" || echo "❌ memory_profiler missing - run 'make install-dev'"
+	@python3 -c "import xdist; print('✅ pytest-xdist installed')" || echo "❌ pytest-xdist missing - run 'make install-dev'"
+	@python3 -c "import pytest_benchmark; print('✅ pytest-benchmark installed')" || echo "❌ pytest-benchmark missing - run 'make install-dev'"
+	@which yamllint > /dev/null && echo "✅ yamllint installed" || echo "❌ yamllint missing - run 'make install-dev'"
+	@which ansible > /dev/null && echo "✅ ansible installed" || echo "❌ ansible missing - install with 'pip install ansible'"
+	@echo "✅ Dependency check complete!"
+
+quickstart: ## Complete setup for new junior users
+	@echo "🚀 QUICKSTART - Setting up Ansible Inventory CLI for new users"
+	@echo "================================================================"
+	@echo ""
+	@echo "Step 1: Installing dependencies..."
+	@$(MAKE) install-dev
+	@echo ""
+	@echo "Step 2: Checking dependencies..."
+	@$(MAKE) check-dependencies
+	@echo ""
+	@echo "Step 3: Running basic validation..."
+	@$(MAKE) validate
+	@echo ""
+	@echo "Step 4: Running health check..."
+	@$(MAKE) health-check
+	@echo ""
+	@echo "Step 5: Formatting code..."
+	@$(MAKE) format
+	@echo ""
+	@echo "Step 6: Running tests..."
+	@$(MAKE) test
+	@echo ""
+	@echo "🎉 QUICKSTART COMPLETE!"
+	@echo "======================"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  • Run 'make help' to see all available commands"
+	@echo "  • Run 'make generate-dry-run' to see what inventory would be generated"
+	@echo "  • Run 'make generate' to generate inventory from CSV"
+	@echo "  • Run 'make lint' to check code quality"
+	@echo "  • Run 'make test-cov' to run tests with coverage"
+	@echo ""
+	@echo "Documentation: Check the docs/ directory for detailed guides"
 
 # Ansible specific commands
 ansible-check: ## Check Ansible playbook syntax
@@ -212,7 +266,7 @@ ansible-check: ## Check Ansible playbook syntax
 generate: ## Generate inventory from CSV (auto-cleans orphaned files)
 	@echo "Generating inventory from CSV..."
 	@echo "Note: Orphaned host_vars files will be automatically cleaned up"
-	python scripts/ansible_inventory_cli.py generate
+	python3 scripts/ansible_inventory_cli.py generate
 	@echo "Inventory generation complete! ✅"
 
 generate-fresh: ## Remove ALL host_vars and regenerate from CSV (DESTRUCTIVE)
@@ -221,18 +275,18 @@ generate-fresh: ## Remove ALL host_vars and regenerate from CSV (DESTRUCTIVE)
 	@echo "Removing all host_vars files..."
 	rm -rf inventory/host_vars/*
 	@echo "Generating fresh inventory from CSV..."
-	python scripts/ansible_inventory_cli.py generate
+	python3 scripts/ansible_inventory_cli.py generate
 	@echo "Fresh inventory generation complete! ✅"
 
 generate-dry-run: ## Generate inventory from CSV (dry run)
 	@echo "Generating inventory from CSV (dry run)..."
-	python scripts/ansible_inventory_cli.py generate --dry-run
+	python3 scripts/ansible_inventory_cli.py generate --dry-run
 	@echo "Dry run complete! ✅"
 
 inventory-stats: ## Show inventory statistics
 	@echo "Inventory Statistics:"
 	@echo "===================="
-	python scripts/ansible_inventory_cli.py health
+	python3 scripts/ansible_inventory_cli.py health
 
 csv-backup: ## Create CSV backup
 	@echo "Creating CSV backup..."
@@ -245,7 +299,7 @@ import-dry-run: ## Test import of external inventory (requires INVENTORY_FILE)
 		echo "Usage: make import-dry-run INVENTORY_FILE=/path/to/inventory.yml"; \
 		exit 1; \
 	fi
-	python scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" --dry-run
+	python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" --dry-run
 
 import-inventory: ## Import external inventory (requires INVENTORY_FILE)
 	@if [ -z "$(INVENTORY_FILE)" ]; then \
@@ -256,7 +310,7 @@ import-inventory: ## Import external inventory (requires INVENTORY_FILE)
 	@echo "⚠️  WARNING: This will create a new CSV file with imported inventory data"
 	@echo "Make sure to backup your existing CSV first!"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ] || exit 1
-	python scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" $(if $(HOST_VARS_DIR),--host-vars-dir "$(HOST_VARS_DIR)")
+	python3 scripts/ansible_inventory_cli.py import --inventory-file "$(INVENTORY_FILE)" $(if $(HOST_VARS_DIR),--host-vars-dir "$(HOST_VARS_DIR)")
 
 import-help: ## Show import usage examples
 	@echo "🔄 INVENTORY IMPORT COMMANDS"
@@ -269,8 +323,8 @@ import-help: ## Show import usage examples
 	@echo "  make import-inventory INVENTORY_FILE=/path/to/inventory.yml HOST_VARS_DIR=/path/to/host_vars/"
 	@echo ""
 	@echo "Direct command usage:"
-	@echo "  python scripts/ansible_inventory_cli.py import --help"
-	@echo "  python scripts/inventory_import.py --help"
+	@echo "  python3 scripts/ansible_inventory_cli.py import --help"
+	@echo "  python3 scripts/inventory_import.py --help"
 
 # CI/CD helpers
 ci-install: ## Install for CI environment
@@ -286,7 +340,7 @@ ci-lint: ## Run linting in CI environment
 
 # Version management
 version: ## Show current version
-	@python -c "import scripts.core.config as config; print(f'Version: {getattr(config, \"VERSION\", \"unknown\")}')"
+	@python3 -c "import scripts.core.config as config; print(f'Version: {getattr(config, \"VERSION\", \"unknown\")}')"
 
 # Database/CSV operations
 backup-all: ## Backup all important files
@@ -297,5 +351,5 @@ backup-all: ## Backup all important files
 # Performance testing
 perf-test: ## Run performance tests
 	@echo "Running performance tests..."
-	time python scripts/ansible_inventory_cli.py health
+	time python3 scripts/ansible_inventory_cli.py health
 	@echo "Performance test complete! ⚡"

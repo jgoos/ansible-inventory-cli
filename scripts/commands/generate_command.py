@@ -7,16 +7,13 @@ It creates environment-specific inventories and host_vars files.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core import get_logger
 from ..core.config import get_default_inventory_key
 from ..managers.inventory_manager import InventoryManager
-
 from .base import BaseCommand, CommandResult
-
 
 
 class GenerateCommand(BaseCommand):

@@ -7,16 +7,13 @@ CSV data consistency, and Ansible configuration integrity.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core import get_logger
 from ..core.utils import create_csv_file, get_csv_template
 from ..managers.validation_manager import ValidationManager
-
 from .base import BaseCommand, CommandResult
-
 
 
 class ValidateCommand(BaseCommand):
