@@ -54,10 +54,10 @@ help:
 
 # Installation (using pyproject.toml as single source of truth)
 install: ## Install the package
-	pip install -e .
+	python3 -m pip install -e .
 
 install-dev: ## Install development dependencies
-	pip install -e ".[dev,test,docs]"
+	python3 -m pip install -e ".[dev,test,docs]"
 	pre-commit install
 
 # Testing
@@ -328,7 +328,7 @@ import-help: ## Show import usage examples
 
 # CI/CD helpers
 ci-install: ## Install for CI environment
-	pip install -e ".[dev,test]"
+	python3 -m pip install -e ".[dev,test]"
 
 ci-test: ## Run tests in CI environment
 	pytest --cov=scripts --cov-report=xml --cov-report=term-missing -v
